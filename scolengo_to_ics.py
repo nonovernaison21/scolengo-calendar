@@ -21,18 +21,16 @@ MONTH_CONFIGS = [
 
 
 def setup_session():
-    """Nettoie et injecte le JSON dans la configuration CLI sous Linux."""
+    """Injecte la session JSON dans tous les dossiers de config cibles sous Linux."""
     if not TOKEN_DATA:
         raise ValueError("Le secret SCOLENGO_TOKEN est introuvable sur GitHub.")
 
-    # S'assurer que le JSON est valide
     try:
         config_json = json.loads(TOKEN_DATA)
     except Exception as e:
         print(f"Avertissement parsing JSON : {e}")
         config_json = TOKEN_DATA
 
-    # Emplacements cibles Linux
     paths = [
         os.path.expanduser("~/.config/scolengo-cli/config.json"),
         os.path.expanduser("~/.config/scolengo-cli-nodejs/config.json"),
@@ -82,9 +80,7 @@ def fetch_range(start_date, end_date, temp_filename="temp.ics"):
     f_str = start_date.strftime("%Y-%m-%d")
     t_str = end_date.strftime("%Y-%m-%d")
 
-    # Commande sous forme de chaîne simple avec npx -y pour forcer l'exécution non-interactive
-    cmd = f'npx -y scolengo-cli export calendar -f "{f_str}" -t "{t_str}" "{temp_filename}"'
-
+    cmd = f'scolengo-cli export calendar -f "{f_str}" -t "{t_str}" "{temp_filename}"'
     res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if not os.path.exists(temp_filename):
