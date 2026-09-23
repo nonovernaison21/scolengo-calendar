@@ -2,8 +2,7 @@ import os
 import subprocess
 from datetime import date, timedelta
 
-USERNAME = os.environ.get("SCOLENGO_USERNAME")
-PASSWORD = os.environ.get("SCOLENGO_PASSWORD")
+TOKEN_DATA = os.environ.get("SCOLENGO_TOKEN")
 
 MONTH_CONFIGS = [
     (2026, 9, "septembre 2026"),
@@ -20,20 +19,20 @@ MONTH_CONFIGS = [
 ]
 
 
-def login_scolengo():
-    if not USERNAME or not PASSWORD:
-        raise ValueError("Identifiants manquants dans les secrets GitHub.")
+def setup_session():
+    """Injecte la session JSON directement dans la configuration de scolengo-cli."""
+    if not TOKEN_DATA:
+        raise ValueError("Le secret SCOLENGO_TOKEN est introuvable sur GitHub.")
 
-    print(f"Tentative de connexion pour : {USERNAME}")
-    cmd = ["npx", "scolengo-cli", "auth", "login", "-u", USERNAME, "-p", PASSWORD]
+    # Emplacement du dossier de config pour scolengo-cli sous Linux (GitHub Actions)
+    config_dir = os.path.expanduser("~/.config/scolengo-cli")
+    os.makedirs(config_dir, exist_ok=True)
 
-    res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+    config_path = os.path.join(config_dir, "config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(TOKEN_DATA)
 
-    print("STDOUT Connexion:", res.stdout.strip())
-    print("STDERR Connexion:", res.stderr.strip())
-
-    if res.returncode != 0:
-        raise RuntimeError("Échec de la connexion à Scolengo")
+    print("Session Scolengo restaurée avec succès.")
 
 
 def parse_vevents(ics_content):
@@ -77,9 +76,7 @@ def fetch_range(start_date, end_date, temp_filename="temp.ics"):
     res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if not os.path.exists(temp_filename):
-        print(
-            f"Erreur export ({start_date} -> {end_date}): {res.stderr.strip()}"
-        )
+        print(f"Erreur export ({start_date} -> {end_date}) : {res.stderr.strip()}")
         return []
 
     with open(temp_filename, "r", encoding="utf-8", errors="ignore") as f:
@@ -104,8 +101,8 @@ def fetch_period_recursive(start_date, end_date):
 
 
 def main():
-    print("Connexion à Scolengo...")
-    login_scolengo()
+    print("Initialisation de la session...")
+    setup_session()
 
     unique_events = {}
     total_raw = 0
@@ -119,13 +116,13 @@ def main():
 
         events = fetch_period_recursive(s_date, e_date)
         total_raw += len(events)
-        print(f"Récupération {label}: {len(events)} événements")
+        print(f"Récupération {label} : {len(events)} cours trouvés")
 
         for ev in events:
             uid = extract_uid(ev) or hash(ev)
             unique_events[uid] = ev
 
-    print(f"Total récupéré: {total_raw} | Uniques: {len(unique_events)}")
+    print(f"Total brut : {total_raw} | Uniques : {len(unique_events)}")
 
     output_filename = "emploi-du-temps-2026-2027.ics"
     ics_header = (
@@ -144,6 +141,8 @@ def main():
         for ev in unique_events.values():
             f.write(ev + "\n")
         f.write(ics_footer)
+
+    print("Fichier ICS généré avec succès !")
 
 
 if __name__ == "__main__":
