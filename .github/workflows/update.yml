@@ -2,7 +2,6 @@ name: Update Calendar
 
 on:
   schedule:
-    # S'exécute toutes les heures entre 6h et 19h UTC (7h - 20h en France)
     - cron: '0 6-19 * * *'
   workflow_dispatch:
 
@@ -17,10 +16,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      
+      - name: Install scolengo-cli
+        run: npm install -g scolengo-cli
+
       - name: Run script
         env:
           SCOLENGO_TOKEN: ${{ secrets.SCOLENGO_TOKEN }}
         run: python scolengo_to_ics.py
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
