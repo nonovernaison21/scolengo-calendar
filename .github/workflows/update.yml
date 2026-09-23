@@ -18,8 +18,7 @@ jobs:
           node-version: '20'
       - name: Run script
         env:
-          SCOLENGO_USERNAME: ${{ secrets.SCOLENGO_USERNAME }}
-          SCOLENGO_PASSWORD: ${{ secrets.SCOLENGO_PASSWORD }}
+          SCOLENGO_TOKEN: ${{ secrets.SCOLENGO_TOKEN }}
         run: python scolengo_to_ics.py
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
