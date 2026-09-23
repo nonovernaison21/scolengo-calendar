@@ -21,17 +21,17 @@ MONTH_CONFIGS = [
 
 
 def setup_session():
-    """Injecte la session JSON dans tous les répertoires de configuration possibles."""
+    """Injecte le JSON dans tous les répertoires de configuration possibles."""
     if not TOKEN_DATA:
         raise ValueError("Le secret SCOLENGO_TOKEN est introuvable sur GitHub.")
 
-    # Emplacements de configuration potentiels pour scolengo-cli sous Linux (GitHub Actions)
     paths = [
         os.path.expanduser("~/.config/scolengo-cli/config.json"),
         os.path.expanduser("~/.config/scolengo-cli-nodejs/config.json"),
         os.path.expanduser(
             "~/.config/scolengo-cli-nodejs/scolengo-cli/config.json"
         ),
+        os.path.expanduser("~/.scolengo-cli/config.json"),
     ]
 
     for p in paths:
@@ -39,7 +39,7 @@ def setup_session():
         with open(p, "w", encoding="utf-8") as f:
             f.write(TOKEN_DATA)
 
-    print("Session Scolengo injectée dans les dossiers de configuration.")
+    print("Session Scolengo injectée.")
 
 
 def parse_vevents(ics_content):
@@ -80,12 +80,15 @@ def fetch_range(start_date, end_date, temp_filename="temp.ics"):
         end_date.strftime("%Y-%m-%d"),
         temp_filename,
     ]
+
     res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
+    # Affichage du retour exact de la CLI dans la console GitHub Actions
     if not os.path.exists(temp_filename):
-        print(
-            f"Erreur export ({start_date} -> {end_date}) : {res.stderr.strip()}"
-        )
+        print(f"\n--- Erreur export ({start_date} -> {end_date}) ---")
+        print("STDOUT :", res.stdout.strip())
+        print("STDERR :", res.stderr.strip())
+        print("--------------------------------------------------\n")
         return []
 
     with open(temp_filename, "r", encoding="utf-8", errors="ignore") as f:
