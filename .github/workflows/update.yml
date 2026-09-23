@@ -1,0 +1,29 @@
+name: Update Calendar
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run script
+        env:
+          SCOLENGO_USERNAME: ${{ secrets.SCOLENGO_USERNAME }}
+          SCOLENGO_PASSWORD: ${{ secrets.SCOLENGO_PASSWORD }}
+        run: python scolengo_to_ics.py
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          destination_dir: ./
