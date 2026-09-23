@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from datetime import date, timedelta
@@ -20,19 +21,25 @@ MONTH_CONFIGS = [
 
 
 def setup_session():
-    """Injecte la session JSON directement dans la configuration de scolengo-cli."""
+    """Injecte la session JSON dans tous les répertoires de configuration possibles."""
     if not TOKEN_DATA:
         raise ValueError("Le secret SCOLENGO_TOKEN est introuvable sur GitHub.")
 
-    # Emplacement du dossier de config pour scolengo-cli sous Linux (GitHub Actions)
-    config_dir = os.path.expanduser("~/.config/scolengo-cli")
-    os.makedirs(config_dir, exist_ok=True)
+    # Emplacements de configuration potentiels pour scolengo-cli sous Linux (GitHub Actions)
+    paths = [
+        os.path.expanduser("~/.config/scolengo-cli/config.json"),
+        os.path.expanduser("~/.config/scolengo-cli-nodejs/config.json"),
+        os.path.expanduser(
+            "~/.config/scolengo-cli-nodejs/scolengo-cli/config.json"
+        ),
+    ]
 
-    config_path = os.path.join(config_dir, "config.json")
-    with open(config_path, "w", encoding="utf-8") as f:
-        f.write(TOKEN_DATA)
+    for p in paths:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(TOKEN_DATA)
 
-    print("Session Scolengo restaurée avec succès.")
+    print("Session Scolengo injectée dans les dossiers de configuration.")
 
 
 def parse_vevents(ics_content):
@@ -76,7 +83,9 @@ def fetch_range(start_date, end_date, temp_filename="temp.ics"):
     res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if not os.path.exists(temp_filename):
-        print(f"Erreur export ({start_date} -> {end_date}) : {res.stderr.strip()}")
+        print(
+            f"Erreur export ({start_date} -> {end_date}) : {res.stderr.strip()}"
+        )
         return []
 
     with open(temp_filename, "r", encoding="utf-8", errors="ignore") as f:
