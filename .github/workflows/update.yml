@@ -2,7 +2,8 @@ name: Update Calendar
 
 on:
   schedule:
-    - cron: '0 */3 * * *'
+    # S'exécute toutes les heures entre 6h et 19h UTC (7h - 20h en France)
+    - cron: '0 6-19 * * *'
   workflow_dispatch:
 
 jobs:
