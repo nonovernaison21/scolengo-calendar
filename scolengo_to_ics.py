@@ -21,25 +21,35 @@ MONTH_CONFIGS = [
 
 
 def setup_session():
-    """Injecte le JSON dans tous les répertoires de configuration possibles."""
+    """Nettoie et injecte le JSON dans la configuration CLI sous Linux."""
     if not TOKEN_DATA:
         raise ValueError("Le secret SCOLENGO_TOKEN est introuvable sur GitHub.")
 
+    # S'assurer que le JSON est valide
+    try:
+        config_json = json.loads(TOKEN_DATA)
+    except Exception as e:
+        print(f"Avertissement parsing JSON : {e}")
+        config_json = TOKEN_DATA
+
+    # Emplacements cibles Linux
     paths = [
         os.path.expanduser("~/.config/scolengo-cli/config.json"),
         os.path.expanduser("~/.config/scolengo-cli-nodejs/config.json"),
         os.path.expanduser(
             "~/.config/scolengo-cli-nodejs/scolengo-cli/config.json"
         ),
-        os.path.expanduser("~/.scolengo-cli/config.json"),
     ]
 
     for p in paths:
         os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w", encoding="utf-8") as f:
-            f.write(TOKEN_DATA)
+            if isinstance(config_json, dict):
+                json.dump(config_json, f, ensure_ascii=False, indent=2)
+            else:
+                f.write(config_json)
 
-    print("Session Scolengo injectée.")
+    print("Session Scolengo injectée avec succès.")
 
 
 def parse_vevents(ics_content):
@@ -69,23 +79,16 @@ def extract_uid(vevent_str):
 
 
 def fetch_range(start_date, end_date, temp_filename="temp.ics"):
-    cmd = [
-        "npx",
-        "scolengo-cli",
-        "export",
-        "calendar",
-        "-f",
-        start_date.strftime("%Y-%m-%d"),
-        "-t",
-        end_date.strftime("%Y-%m-%d"),
-        temp_filename,
-    ]
+    f_str = start_date.strftime("%Y-%m-%d")
+    t_str = end_date.strftime("%Y-%m-%d")
+
+    # Commande sous forme de chaîne simple avec npx -y pour forcer l'exécution non-interactive
+    cmd = f'npx -y scolengo-cli export calendar -f "{f_str}" -t "{t_str}" "{temp_filename}"'
 
     res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
-    # Affichage du retour exact de la CLI dans la console GitHub Actions
     if not os.path.exists(temp_filename):
-        print(f"\n--- Erreur export ({start_date} -> {end_date}) ---")
+        print(f"\n--- Erreur export ({f_str} -> {t_str}) ---")
         print("STDOUT :", res.stdout.strip())
         print("STDERR :", res.stderr.strip())
         print("--------------------------------------------------\n")
